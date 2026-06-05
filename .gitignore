@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+dist/
+build/
+.npm
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Rust
+target/
+**/*.rs.bk
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+
+# Chrome extension
+*.crx
+*.pem
+*.zip
+
+# Environment & secrets
+.env*
+!.env.example
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.cursor
