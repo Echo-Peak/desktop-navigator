@@ -31,4 +31,8 @@ src-tauri/WixTools/
 # OS & editor
 .DS_Store
 Thumbs.db
-.cursor
+
+# Cursor — ignore local/user config, keep shared project rules
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**

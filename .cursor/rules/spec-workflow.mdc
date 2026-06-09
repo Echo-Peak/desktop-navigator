@@ -1,0 +1,22 @@
+---
+description: Spec-driven development workflow and status updates
+alwaysApply: true
+---
+
+# Spec workflow
+
+Before implementing features in this repository:
+
+1. Read [doc/spec/README.md](doc/spec/README.md) and the target spec file.
+2. Only implement specs with `status: approved`. Skip `draft` unless the user
+   explicitly approves implementation. Do not rework `implemented` specs unless
+   the user requests a change.
+
+When implementation is complete and the spec's `## Acceptance` criteria pass:
+
+1. Set the spec frontmatter `status: implemented` and fill `implements:` with
+   code paths (e.g. `src-tauri/src/engine/`).
+2. Update the Status and Implements columns for that spec in
+   [doc/spec/README.md](doc/spec/README.md).
+
+Never mark `implemented` if acceptance criteria fail or tests do not pass.
