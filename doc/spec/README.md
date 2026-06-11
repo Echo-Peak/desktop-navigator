@@ -6,12 +6,13 @@ Normative specs for desktop-navigator. Each spec has a stable `id`, `status`,
 | ID | Spec | Status | Implements | Depends on |
 | --- | --- | --- | --- | --- |
 | SPEC-PROD-001 | [product/vision.md](product/vision.md) | draft | — | — |
-| SPEC-ARCH-001 | [architecture/execution-engine.md](architecture/execution-engine.md) | draft | — | SPEC-PROD-001 |
+| SPEC-ARCH-001 | [architecture/execution-engine.md](architecture/execution-engine.md) | draft | — | SPEC-PROD-001, SPEC-SCH-002 |
 | SPEC-ARCH-002 | [architecture/data-management.md](architecture/data-management.md) | draft | — | SPEC-PROD-001 |
-| SPEC-SCH-001 | [schemas/page-context.md](schemas/page-context.md) | draft | — | SPEC-ARCH-001, SPEC-ARCH-002 |
-| SPEC-FEAT-001 | [features/desktop-ui.md](features/desktop-ui.md) | draft | — | SPEC-PROD-001, SPEC-SCH-001 |
+| SPEC-SCH-001 | [schemas/page-context.md](schemas/page-context.md) | draft | — | SPEC-ARCH-001, SPEC-ARCH-002, SPEC-SCH-002 |
+| SPEC-SCH-002 | [schemas/action-catalog.md](schemas/action-catalog.md) | draft | — | SPEC-PROD-001 |
+| SPEC-FEAT-001 | [features/desktop-ui.md](features/desktop-ui.md) | draft | — | SPEC-PROD-001, SPEC-SCH-001, SPEC-SCH-002 |
 | SPEC-FEAT-002 | [features/captcha-resolvers.md](features/captcha-resolvers.md) | draft | — | SPEC-ARCH-001, SPEC-COMP-001 |
-| SPEC-FEAT-003 | [features/macro-recorder.md](features/macro-recorder.md) | draft | — | SPEC-FEAT-001, SPEC-COMP-001, SPEC-SCH-001 |
+| SPEC-FEAT-003 | [features/macro-recorder.md](features/macro-recorder.md) | draft | — | SPEC-FEAT-001, SPEC-COMP-001, SPEC-SCH-001, SPEC-SCH-002 |
 | SPEC-COMP-001 | [components/browser-extension.md](components/browser-extension.md) | draft | — | SPEC-ARCH-001 |
 | SPEC-INFRA-001 | [infra/ci-cd.md](infra/ci-cd.md) | draft | — | SPEC-PROD-001 |
 

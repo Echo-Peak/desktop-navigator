@@ -5,6 +5,7 @@ status: draft
 depends_on:
   - SPEC-ARCH-001
   - SPEC-ARCH-002
+  - SPEC-SCH-002
 implements: []
 ---
 
@@ -85,13 +86,18 @@ export interface Integration {
 
 Defines a page (specific URL).
 
+`steps[]` is the linear execution source of truth (ordered). `canvas` is a
+presentation-only layout used to re-render the node-graph diagram; it never
+affects execution order and is ignored by the execution engine.
+
 ```typescript
 export interface PageContext {
   domain: string;
   description: string;
   schemaVersion: string;
   env: PageContextEnv;
-  steps: AutomationStep[];
+  steps: AutomationStep[]; // execution source of truth (ordered)
+  canvas?: AutomationCanvas; // presentation-only layout for the diagram
   output?: IntegrationConfig;
 }
 
@@ -104,64 +110,41 @@ export interface PageContextEnv {
 export interface AutomationStep {
   id: string; // Unique identifier for logs
   description?: string; // Human readable context
-  action: ActionPayload; // Discriminated union of action types
+  action: AutomationAction; // see schemas/action-catalog.md (single source of truth)
   timeoutMs?: number; // Max time to wait for completion (Default: 5000)
   optional?: boolean; // If true, failure skips to next step
   retries?: number; // Number of times to retry before failing
 }
-
-export type ActionPayload =
-  // --- Navigation & Flow ---
-  | { type: "navigate"; url: string }
-  | { type: "wait"; condition: WaitCondition,  skipAfter: number } // skipAfter: 10s (default)
-
-  // --- OS-Level Inputs (Via Input Controller / enigo) ---
-  | { type: "click"; selector: string; offset?: { x: number; y: number } }
-  | { type: "type"; selector: string; value: string; isSecret?: boolean }
-  | { type: "keyboardShortcut"; keys: string[] }
-  {
-      type: "moveMouse",
-      x: number,
-      y: number,
-      includeRandomness: boolean // default false
-    }
-
-  // --- Data Extraction & Processing ---
-  | {
-      type: "extract";
-      selector: string;
-      extractType: "text" | "attribute";
-      attributeName?: string;
-      saveToVariable: string;
-    }
-  | {
-      type: "extractCollection";
-      containerSelector: string;
-      itemSelector: string;
-      extract: Record<
-        string,
-        {
-          selector: string;
-          extractType: "text" | "attribute";
-          attributeName?: string;
-        }
-      >;
-      saveToVariable: string;
-    }
-  | {
-      type: "aggregateStrings";
-      inputVariable: string; // Targets array saved from extractCollection
-      template: string; // String template with {{keys}}
-      joinWith: string; // Delimiter to join array (e.g., "\n\n")
-      saveToVariable: string;
-    } ;
-
-
-export type WaitCondition =
-  | { type: "time"; ms: number }
-  | { type: "elementVisible"; selector: string }
-  | { type: "elementHidden"; selector: string };
 ```
+
+The `action` field is an `AutomationAction` from the canonical
+[schemas/action-catalog.md](action-catalog.md). All action and `WaitCondition`
+types live there; this spec does not redefine them.
+
+#### AutomationCanvas
+
+Presentation-only layout for the node-graph diagram (React Flow / `@xyflow/react`).
+Each node maps 1:1 to a step via `stepId`.
+
+```typescript
+export interface AutomationCanvas {
+  // one node per step, keyed by AutomationStep.id
+  nodes: { stepId: string; position: { x: number; y: number } }[];
+  // visual connectors; for v1 these mirror linear step order (A -> B -> C)
+  edges: { id: string; source: string; target: string }[];
+  viewport?: { x: number; y: number; zoom: number };
+}
+```
+
+- Each `canvas.nodes[].stepId` MUST reference an existing `steps[].id`. The UI
+  prunes stale node entries whose step was deleted.
+- If `canvas` is absent, or a step has no node entry, the UI auto-lays-out a
+  default vertical chain.
+- Maps directly onto `@xyflow/react`: a React Flow node is
+  `{ id: stepId, position, data: <the AutomationStep> }`; `canvas.edges` map to
+  React Flow edges.
+- The execution engine ignores `canvas` entirely (see
+  [architecture/execution-engine.md](../architecture/execution-engine.md)).
 
 ### Example payload
 
@@ -213,6 +196,18 @@ export type WaitCondition =
       }
     }
   ],
+  "canvas": {
+    "nodes": [
+      { "stepId": "login_type", "position": { "x": 0, "y": 0 } },
+      { "stepId": "scrape_items", "position": { "x": 0, "y": 160 } },
+      { "stepId": "format_for_slack", "position": { "x": 0, "y": 320 } }
+    ],
+    "edges": [
+      { "id": "e1", "source": "login_type", "target": "scrape_items" },
+      { "id": "e2", "source": "scrape_items", "target": "format_for_slack" }
+    ],
+    "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  },
   "integrations": [
     {
       "type": "webhook",
@@ -229,5 +224,8 @@ export type WaitCondition =
 
 - [ ] TypeScript types in this spec are reflected in Rust/TS schema types
 - [ ] BrowserContext and PageContext JSON validate against `schemaVersion`
-- [ ] All `ActionPayload` variants parse and dispatch correctly
+- [ ] `AutomationStep.action` uses the `AutomationAction` union from
+      [action-catalog.md](action-catalog.md); no action types are redefined here
+- [ ] `canvas` round-trips: positions/edges persist and re-render the diagram
+- [ ] `canvas.nodes[].stepId` referential integrity enforced (stale nodes pruned)
 - [ ] Example payload in this spec runs end-to-end via the execution engine

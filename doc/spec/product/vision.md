@@ -32,8 +32,8 @@ vision and simple NLP processing.
 
 - Rust based backend to simulate keyboard and mouse input. Mouse inputs needed
   are movement, scroll wheel and left click. See
-  [architecture/execution-engine.md](../architecture/execution-engine.md) section
-  2.4 (UserClient / Input Controller).
+  [architecture/execution-engine.md](../architecture/execution-engine.md)
+  section 2.4 (UserClient / Input Controller).
 - Schema system to orchestrate the app. See
   [schemas/page-context.md](../schemas/page-context.md).
 - Frontend / UI. See [features/desktop-ui.md](../features/desktop-ui.md).
@@ -58,11 +58,12 @@ vision and simple NLP processing.
   ```
 - Increment port on connection failure, up to +10 ports (35282–35292), 1000ms
   delay between attempts.
-- LLM module/API for OpenRouter: async, event-driven; frontend sends images and
-  text and receives responses.
+- LLM module/API for OpenRouter and local for Ollahma: async, event-driven;
+  frontend sends images and text and receives responses. The default
+  intergration will be OpenRouter
 - File logger: write to FS when compiled, otherwise console/stdout. See
-  [architecture/data-management.md](../architecture/data-management.md) (### Logs
-  dir).
+  [architecture/data-management.md](../architecture/data-management.md) (###
+  Logs dir).
 - Captcha resolver module for user-created resolvers. See
   [features/captcha-resolvers.md](../features/captcha-resolvers.md).
 

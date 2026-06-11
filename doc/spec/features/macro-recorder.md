@@ -6,6 +6,7 @@ depends_on:
   - SPEC-FEAT-001
   - SPEC-COMP-001
   - SPEC-SCH-001
+  - SPEC-SCH-002
 implements: []
 ---
 
@@ -300,55 +301,43 @@ active.
 | Pause button | Sends `pause` to extension; timer pauses                |
 | Stop button  | Sends `stop`; session ends; Save panel appears          |
 
-### Event feed
+### Node-graph canvas
 
-A vertically scrollable list, newest event at the bottom. Auto-scrolls to bottom
-as new events arrive.
+The Recording View uses the **same React Flow (`@xyflow/react`) canvas** as the
+Manual tab (see [features/desktop-ui.md](desktop-ui.md)). There is no separate
+event-card feed.
 
-Each event renders as a card:
+- Each incoming `RecordedEvent` is converted to a catalog `AutomationAction`
+  (see Export mapping below) and appended to the canvas as a node.
+- Each new node is connected with an arrow from the previously added node
+  (A -> B -> C), so the diagram grows chronologically as the user acts.
+- Nodes are auto-positioned as they arrive (e.g. a vertical chain); positions
+  become editable after recording stops.
+- The canvas auto-pans to keep the newest node in view.
+- A node still surfaces its event detail (action label, selector/element text,
+  bounding rect, `🔒 Sensitive` badge for password fields) within the node body.
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  [Click]                          0:04.231   [✕ delete]│
-│                                                       │
-│  Button#submitBtn                                     │
-│  .btn  .btn-primary                                   │
-│  "Sign In"                                            │
-│                                                       │
-│  x  340    y  220    width  120    height  40         │
-└──────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────┐
-│  [Type]                           0:02.810   [✕ delete]│
-│                                                       │
-│  Input[name="email"]                                  │
-│  placeholder: "Enter your email"                      │
-│                                                       │
-│  value  user@example.com                              │
-│  x  240    y  180    width  280    height  36         │
-└──────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────┐
-│  [Type]   🔒 Sensitive                  0:03.110  [✕]  │
-│                                                       │
-│  Input[type="password"]  [name="password"]            │
-│                                                       │
-│  value  {{credentials.password}}                      │
-│  x  240    y  230    width  280    height  36         │
-└──────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────┐
-│  [Navigate]                       0:05.002   [✕ delete]│
-│                                                       │
-│  → https://app.example.com/dashboard                  │
-└──────────────────────────────────────────────────────┘
+[Navigate https://app.example.com]
+        │
+        ▼
+[Type  Input[name="email"]  user@example.com]
+        │
+        ▼
+[Type  Input[type=password]  🔒 {{credentials.password}}]
+        │
+        ▼
+[Click  Button#submitBtn  "Sign In"]
 ```
 
 ### Save panel (shown after stop)
 
 - **[Save as Steps]** — converts events and writes to `PageSchema.steps`
-  (overwrites existing steps after a confirmation dialog)
-- **[Append to Steps]** — appends after any existing steps
+  (overwrites existing steps after a confirmation dialog). Also writes the
+  `canvas` object (node positions + edges) so the recorded automation re-renders
+  with its layout; auto-layout positions are persisted but user-editable.
+- **[Append to Steps]** — appends after any existing steps (and appends matching
+  `canvas` nodes/edges)
 - **[Discard]** — throws away the session
 
 ---
@@ -368,30 +357,36 @@ When a `"type"` event arrives with `sensitiveInput: true`:
 
 ---
 
-## Export: RecordedEvent → PageSchemaStep
+## Export: RecordedEvent → AutomationAction
 
-| `RecordedEvent.type` | Exported `ActionStep`                                                                           |
-| -------------------- | ----------------------------------------------------------------------------------------------- |
-| `click`              | `action: "click"`, `target.selector.strategy: "css"`, `target.selector.value: element.selector` |
-| `dblclick`           | `action: "doubleClick"`, same target                                                            |
-| `type`               | `action: "type"`, `params.value: event.value`, target from element                              |
-| `keypress`           | `action: "press"`, `params.key: event.key`                                                      |
-| `scroll`             | `action: "scroll"`, `params` from `scrollDelta`                                                 |
-| `navigate`           | `action: "navigate"`, `params.url: event.pageUrl`                                               |
+`RecordedEventType` is the capture-side vocabulary. The authored/executed
+vocabulary is the canonical `AutomationAction` union in
+[schemas/action-catalog.md](../schemas/action-catalog.md). This table is the only
+bridge between the two.
+
+| `RecordedEvent.type` | Catalog `AutomationAction`                                              |
+| -------------------- | ----------------------------------------------------------------------- |
+| `click`              | `{ type: "click", selector: element.selector }`                         |
+| `dblclick`           | `{ type: "doubleClick", selector: element.selector }`                   |
+| `type`               | `{ type: "type", selector: element.selector, value: event.value }`      |
+| `keypress`           | `{ type: "keyboardShortcut", keys: [event.key] }` (single-key)          |
+| `scroll`             | `{ type: "scroll", deltaX, deltaY }` from `scrollDelta`                  |
+| `navigate`           | `{ type: "navigate", url: event.pageUrl }`                              |
 
 Each exported step also gets:
 
 - `description` auto-populated from `element.text` or `element.ariaLabel` if
   available (e.g., `"Click 'Sign In' button"`)
-- `timeout: 10000` (page default)
-- A `waitForElement` step is **prepended** before each `click` or `type` step to
-  make replays resilient:
+- `timeoutMs: 10000` (page default)
+- A `waitFor` step (catalog action with `condition: { type: "elementVisible" }`)
+  is **prepended** before each `click`/`doubleClick`/`type` step to make replays
+  resilient:
 
 ```jsonc
 // Prepended automatically
-{ "action": "waitForElement", "target": { "selector": { "strategy": "css", "value": "button#submitBtn" } }, "timeout": 10000 },
+{ "id": "wait_submit", "action": { "type": "waitFor", "condition": { "type": "elementVisible", "selector": "button#submitBtn" } }, "timeoutMs": 10000 },
 // Then the actual action
-{ "action": "click",          "target": { "selector": { "strategy": "css", "value": "button#submitBtn" } }, "description": "Click 'Sign In' button" }
+{ "id": "click_submit", "action": { "type": "click", "selector": "button#submitBtn" }, "description": "Click 'Sign In' button" }
 ```
 
 ---
@@ -454,7 +449,12 @@ will overwrite the current steps.
 - [ ] Click, type, keypress, scroll, and navigate events captured per rules in
       this spec
 - [ ] Password fields never stored in plaintext; exported as credential refs
+- [ ] Events render as nodes on the shared React Flow canvas, appended with an
+      arrow from the previous node in chronological order
 - [ ] Stop recording shows Save panel; Save as Steps writes valid PageContext
-      steps
-- [ ] Exported steps include prepended `waitForElement` before click/type
+      `steps[]` and a `canvas` object (positions + edges)
+- [ ] Each `RecordedEvent.type` maps to a catalog `AutomationAction` per the
+      Export table; no orphan action names
+- [ ] Exported steps include a prepended `waitFor` (`elementVisible`) before
+      click/doubleClick/type
 - [ ] One active recording session enforced per app instance

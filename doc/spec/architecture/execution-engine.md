@@ -4,6 +4,7 @@ title: Execution Engine
 status: draft
 depends_on:
   - SPEC-PROD-001
+  - SPEC-SCH-002
 implements: []
 ---
 
@@ -102,6 +103,26 @@ The backend consists of five primary modules (sections 2.1–2.5 below).
   `env:SECRET_KEY` references in the schema at runtime without exposing them to
   disk or the frontend UI.
 
+### 2.6 Action Dispatcher
+
+- **Responsibility:** Executes the canonical action set defined in
+  [schemas/action-catalog.md](../schemas/action-catalog.md). For each
+  `AutomationStep`, the dispatcher reads `action.type` and routes it to its
+  executor subsystem via a single registry:
+  - Browser Commands (`navigate`, `reload`, `goBack`, `goForward`) -> Browser
+    Manager (2.2)
+  - OS Commands (`moveMouse`, `click`, `doubleClick`, `rightClick`, `type`,
+    `keyboardShortcut`, `scroll`) -> DOM-to-OS Bridge (2.3) for coordinates,
+    then Input Controller (2.4)
+  - DOM Interactions / Data (`waitFor`, `extract`, `extractCollection`,
+    `queryProperty`, `aggregateStrings`) -> DOM-to-OS Bridge (2.3) and Schema
+    Engine (2.1)
+- **Single point of extension:** adding a new action is done in the catalog and
+  the registry only; no other module enumerates action types.
+- **Execution order:** the engine reads `steps[]` in array order. It **ignores
+  the presentation-only `canvas` object** (node positions, edges, viewport) in
+  `PageContext` — diagram layout never affects execution.
+
 ## 3. Execution Flow
 
 1. **Initialization:** User triggers a schema via the Tauri UI or a Cron
@@ -131,4 +152,6 @@ The backend consists of five primary modules (sections 2.1–2.5 below).
       on disk
 - [ ] End-to-end step iteration runs navigate, click, type, extract, and wait
       actions
+- [ ] All catalog actions dispatch to the correct subsystem via the registry
+- [ ] Engine reads `steps[]` in order and ignores the `canvas` layout object
 - [ ] `cargo test` passes for execution engine modules
