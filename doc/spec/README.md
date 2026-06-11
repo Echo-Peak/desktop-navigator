@@ -15,6 +15,7 @@ Normative specs for desktop-navigator. Each spec has a stable `id`, `status`,
 | SPEC-FEAT-003 | [features/macro-recorder.md](features/macro-recorder.md) | draft | — | SPEC-FEAT-001, SPEC-COMP-001, SPEC-SCH-001, SPEC-SCH-002 |
 | SPEC-COMP-001 | [components/browser-extension.md](components/browser-extension.md) | draft | — | SPEC-ARCH-001 |
 | SPEC-INFRA-001 | [infra/ci-cd.md](infra/ci-cd.md) | draft | — | SPEC-PROD-001 |
+| SPEC-INFRA-002 | [infra/autoupdate.md](infra/autoupdate.md) | draft | — | SPEC-PROD-001, SPEC-ARCH-002, SPEC-INFRA-001 |
 
 Non-normative backlog: [../backlog/post-mvp.md](../backlog/post-mvp.md)
 

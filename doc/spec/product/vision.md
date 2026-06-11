@@ -49,8 +49,7 @@ vision and simple NLP processing.
 - Chrome extension as the IPC bridge between the DOM and the Tauri/Rust backend.
   See [components/browser-extension.md](../components/browser-extension.md).
 - AutoUpdate module for the desktop app (not the extension). See
-  [architecture/data-management.md](../architecture/data-management.md) (###
-  AutoUpdater).
+  [infra/autoupdate.md](../infra/autoupdate.md) (SPEC-INFRA-002).
 - App config file for WS server port and host. Defaults:
   ```
   PORT=35282
