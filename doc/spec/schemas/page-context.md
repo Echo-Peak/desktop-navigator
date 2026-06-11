@@ -1,12 +1,14 @@
 ---
 id: SPEC-SCH-001
 title: Page Context Schema
-status: draft
+status: approved
 depends_on:
   - SPEC-ARCH-001
   - SPEC-ARCH-002
   - SPEC-SCH-002
-implements: []
+implements:
+  - crates/core/src/schema.rs
+  - src/types/page-context.ts
 ---
 
 # Goal
@@ -38,11 +40,13 @@ Schema files must be versioned for major app changes.
 Schema files are stored on the filesystem within the user directory. See
 [architecture/data-management.md](../architecture/data-management.md).
 
-## Open Questions
+## Credential protection
 
-- Env vars / creds protection: OS keychain/credential provider? User enters
-  password/email in the Tauri UI; values must not be stored in plaintext on
-  disk.
+Env vars / creds are protected by the Secret Vault (OS keychain) defined in
+[architecture/execution-engine.md](../architecture/execution-engine.md) section
+2.5. The user enters password/email in the Tauri UI; values are stored in the OS
+keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service) and
+referenced from the schema as `env:KEY` — never written to disk in plaintext.
 
 ## Steps
 

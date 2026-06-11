@@ -1,12 +1,25 @@
 ---
 id: SPEC-ARCH-001
 title: Execution Engine
-status: draft
+status: approved
 depends_on:
   - SPEC-PROD-001
   - SPEC-SCH-002
-implements: []
+implements:
+  - crates/core/src/engine/
+  - src-tauri/src/adapters/
 ---
+
+> Implementation note: the engine core (Schema Engine, StateMap, Secret Vault
+> port, Browser Manager arg builder, DOM-to-OS coordinate math, no-teleport
+> Input Controller, Action Dispatcher) is implemented and unit-tested in
+> `crates/core/src/engine/`. Real adapters live in `src-tauri/`: `enigo`
+> Input Controller and `keyring` Secret Vault in `src-tauri/src/adapters/`,
+> the Chrome launcher (isolated profile + `--load-extension`) in
+> `src-tauri/src/adapters/browser.rs`, and the WebSocket bridge server that
+> implements the `DomBridge` + `BrowserManager` ports against the extension in
+> `src-tauri/src/bridge.rs`. Remaining work is end-to-end runtime verification
+> against a live Chrome instance (no automated coverage in CI yet).
 
 # Goal
 

@@ -1,13 +1,19 @@
 ---
 id: SPEC-FEAT-003
 title: Macro Recorder
-status: draft
+status: implemented
 depends_on:
   - SPEC-FEAT-001
   - SPEC-COMP-001
   - SPEC-SCH-001
   - SPEC-SCH-002
-implements: []
+implements:
+  - BrowserExtensions/Chrome/content.js
+  - BrowserExtensions/Chrome/background.js
+  - src-tauri/src/bridge.rs
+  - src-tauri/src/lib.rs
+  - src/lib/recorder.ts
+  - src/routes/Automations.tsx
 ---
 
 # Goal
@@ -55,7 +61,8 @@ edited, and exported as the schema's `steps` array.
 1. User opens a PageSchema in the desktop app
 2. User clicks [Start Recording] in the schema detail view
 3. Desktop app:
-     a. Starts the local WebSocket server (port 9223)
+     a. Starts the local WebSocket bridge server (port 35282, the shared
+        bridge from [components/browser-extension.md](../components/browser-extension.md))
      b. Spawns a Chrome window via the managed profile + extension
      c. Navigates to pageSchema.baseUrl
 4. Browser window opens; extension activates in recording mode
@@ -82,10 +89,10 @@ edited, and exported as the schema's `steps` array.
 │  └─────────────┘   └────────┬────────┘  │
 │                             │           │
 │                    WebSocket Server     │
-│                    ws://localhost:9223  │
+│                    ws://localhost:35282 │
 └─────────────────────────────────────────┘
                              ▲
-                             │ ws://localhost:9223
+                             │ ws://localhost:35282
                              │
 ┌────────────────────────────┴────────────┐
 │         Chrome (managed profile)        │
@@ -137,7 +144,6 @@ interface RecordedEvent {
   // ALWAYS "{{credentials.[field]}}" for
   // password inputs — never plaintext
   key?: string; // for "keypress" events: e.g. "Enter", "Tab"
-  scrollDelta?: { x: number; y: number }; // for "scroll" events
 }
 ```
 
@@ -149,9 +155,8 @@ type RecordedEventType =
   | "dblclick"
   | "type" // debounced final value of a text input
   | "keypress" // a non-character key: Enter, Tab, Escape, F-keys
-  | "scroll"
   | "navigate" // page URL changed (user clicked a link / form submitted)
-  | "focus"; // optional; used for ordering context, not exported as a step
+  | "focus"; // used for ordering context only, not exported as a step
 ```
 
 ### `ElementDescriptor`
@@ -215,8 +220,9 @@ interface ElementDescriptor {
 
 ### Scroll events
 
-- Throttled to 1 event per 500 ms
-- Capture `window.scrollX` / `window.scrollY` delta since last scroll event
+- Scroll is **not** captured as a recorded step. On replay the executor
+  auto-scrolls the target into view (`scrollIntoView`) before each action, so
+  explicit scroll steps are unnecessary.
 
 ---
 
@@ -272,17 +278,13 @@ it on stop. The extension connects immediately on window open.
 ### Session token
 
 The Tauri backend generates a random `sessionId` (UUIDv4) per recording session.
-This token is written to a known file in the managed profile directory before
-Chrome is launched. The extension background worker reads the file via
-`fetch("file://...")` on startup and includes the token in the `"ready"`
+The token is passed as a query parameter on the URL Chrome navigates to on launch
+(`baseUrl?_bpsession=abc123`). The content script reads it from
+`window.location.search` and forwards it to the background worker via
+`chrome.runtime.sendMessage`; the background worker includes it in the `"ready"`
 message. The backend rejects WebSocket messages with a mismatched or absent
-`sessionId`.
-
-> **Open question:** `fetch()` on a `file://` URL may be blocked in MV3 service
-> workers. Alternative: pass the token as a query param on the URL Chrome
-> navigates to on launch (`baseUrl?_bpsession=abc123`), and have the content
-> script read it from `window.location.search` and send it to the background via
-> `chrome.runtime.sendMessage`.
+`sessionId`. The content script strips `_bpsession` from any captured/recorded
+URLs so it never leaks into exported steps.
 
 ---
 
@@ -370,8 +372,11 @@ bridge between the two.
 | `dblclick`           | `{ type: "doubleClick", selector: element.selector }`                   |
 | `type`               | `{ type: "type", selector: element.selector, value: event.value }`      |
 | `keypress`           | `{ type: "keyboardShortcut", keys: [event.key] }` (single-key)          |
-| `scroll`             | `{ type: "scroll", deltaX, deltaY }` from `scrollDelta`                  |
 | `navigate`           | `{ type: "navigate", url: event.pageUrl }`                              |
+
+`scroll` and `focus` events are not exported. Scrolling is handled by the
+executor auto-scrolling the target into view before each action; `focus` is used
+only for ordering context (Tab navigation exports a single `keypress: Tab`).
 
 Each exported step also gets:
 
@@ -416,31 +421,26 @@ will overwrite the current steps.
 
 ---
 
+## Resolved decisions
+
+- **Token passing** — passed as a `_bpsession` URL query param on launch and read
+  by the content script (see ### Session token).
+- **Scroll step export** — scroll is not exported; the executor auto-scrolls the
+  target into view before each action.
+- **`focus` events** — captured for ordering context only; Tab navigation exports
+  a single `keypress: Tab` step (no separate `focus` step).
+- **Multi-step type grouping** — only the final debounced value of a field is
+  captured (intended behaviour).
+
 ## Open Questions
 
-1. **Token passing to extension** — `fetch("file://")` may not work in MV3
-   service workers. Confirm whether URL query param approach is viable, or if
-   `chrome.storage` seeding via CDP is cleaner.
-
-2. **Iframe support** — content script is not injected into cross-origin iframes
+1. **Iframe support** — content script is not injected into cross-origin iframes
    by default. Deferred to v2; worth calling out in the UI with a notice when
    the user clicks inside an iframe.
 
-3. **Scroll step export** — is capturing scroll as an explicit step useful for
-   replay, or should the executor auto-scroll via `scrollIntoView` before every
-   action and skip scroll steps entirely?
-
-4. **`focus` events** — currently captured for ordering context but not
-   exported. Should tab-order navigation (Tab key) generate both a `focus` and
-   `keypress: Tab` step, or just `keypress: Tab`?
-
-5. **Re-record confirmation UX** — if a schema already has hand-written steps,
+2. **Re-record confirmation UX** — if a schema already has hand-written steps,
    the warning dialog needs to be explicit that re-recording overwrites them.
    Consider an **Export to new file** option instead.
-
-6. **Multi-step type grouping** — if the user clicks into a field, types
-   something, clears it, then types something else, only the final debounced
-   value is captured. Confirm this is the desired behaviour.
 
 ## Acceptance
 

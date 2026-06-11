@@ -1,12 +1,18 @@
 ---
 id: SPEC-INFRA-002
 title: AutoUpdate Module
-status: draft
+status: implemented
 depends_on:
   - SPEC-PROD-001
   - SPEC-ARCH-002
   - SPEC-INFRA-001
-implements: []
+implements:
+  - crates/core/src/update/
+  - crates/core/src/log.rs
+  - src-tauri/src/update.rs
+  - src-tauri/src/lib.rs
+  - src/components/UpdatePrompt.tsx
+  - src/components/Toast.tsx
 ---
 
 # Goal
@@ -42,6 +48,17 @@ scoped to the active environment (`production` or `development`):
 ```
 GET <worker-url>?artifact=manifest.json&env=<environment>
 ```
+
+> Worker contract (provisional): the request shapes below are assumed by the
+> client until SPEC-INFRA-001 is implemented and must be kept in sync with the
+> worker. The worker URL and environment are resolved at runtime with the
+> precedence: env vars (`DN_UPDATE_WORKER_URL`, `DN_UPDATE_ENV`) > `update.json`
+> in `InstallDir` > compiled defaults (env baked from the CI branch, else derived
+> from the build profile). When no worker URL resolves, AU is disabled and logs a
+> single line.
+>
+> - Checksum: `GET <worker-url>?artifact=sha256Checksum.txt&env=<environment>&version=<v>`
+> - Artifact: `GET <worker-url>?artifact=<artifactName>&env=<environment>&version=<v>`
 
 `manifest.json` schema:
 
@@ -87,7 +104,14 @@ Install steps:
 1. Unzip artifact to `<InstallDirUpdates>/v<new>/`.
 2. Copy the unzipped contents to `<InstallDir>/v<new>/`.
 3. Rewrite `shortcutLauncher` to point to `<InstallDir>/v<new>/<binary>`.
-4. Do **not** delete any previous version directory.
+4. Do **not** delete any previous version directory — all prior versions are
+   retained indefinitely.
+
+## Post-install restart
+
+After a successful install, prompt the user with a "Restart now / Restart later"
+choice. Never force-restart. If "later" is chosen, the new version takes effect
+on the next launch via `shortcutLauncher`.
 
 ## CLI flag
 
@@ -116,16 +140,6 @@ All AU events must be written to the file logger defined in SPEC-ARCH-002
 (### Logs dir): check triggered, version comparison result, download
 start/end, checksum pass/fail, install success/fail.
 
-# Open Questions
-
-- SPEC-ARCH-002 references GitHub Releases as the artifact source while
-  SPEC-INFRA-001 uses Cloudflare R2. This spec assumes R2 + Cloudflare worker
-  is authoritative; confirm.
-- Should a successful install trigger an automatic app restart, or prompt the
-  user to restart?
-- Should older `v<n>` directories be pruned after a configurable retention count
-  to cap disk usage?
-
 ## Acceptance
 
 - [ ] AU module triggers on app start
@@ -138,5 +152,6 @@ start/end, checksum pass/fail, install success/fail.
 - [ ] Previous version directory preserved after install
 - [ ] `shortcutLauncher` rewritten to new version binary
 - [ ] `--update <version>` flag runs helper flow without opening the UI
+- [ ] User prompted to restart now or later after a successful install
 - [ ] All AU events written to file logger
 - [ ] Toast notification shown on write permission error

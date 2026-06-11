@@ -1,7 +1,7 @@
 ---
 id: SPEC-SCH-002
 title: Action Catalog
-status: draft
+status: approved
 depends_on:
   - SPEC-PROD-001
 implements: []

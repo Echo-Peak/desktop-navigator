@@ -1,12 +1,14 @@
 ---
 id: SPEC-FEAT-001
 title: Desktop UI
-status: draft
+status: implemented
 depends_on:
   - SPEC-PROD-001
   - SPEC-SCH-001
   - SPEC-SCH-002
-implements: []
+implements:
+  - src/
+  - src-tauri/src/lib.rs
 ---
 
 # Goal
