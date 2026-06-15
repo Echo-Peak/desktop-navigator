@@ -1,10 +1,17 @@
 ---
 id: SPEC-INFRA-001
 title: CI/CD
-status: draft
+status: implemented
 depends_on:
   - SPEC-PROD-001
-implements: []
+implements:
+  - .github/workflows/release.yml
+  - scripts/ci/set-version.mjs
+  - scripts/ci/package-macos.mjs
+  - scripts/ci/manifest.mjs
+  - scripts/ci/cloudflare/
+  - package.json
+  - README.md
 ---
 
 # Goal
@@ -12,10 +19,13 @@ implements: []
 Create a CI/CD pipeline to build and deploy the app for different platforms and
 installers.
 
-# Open Questions
+# Resolved Questions
 
-- Is using a Cloudflare worker correct to get the latest artifact? Static links
-  in README.md should point to the latest installer files.
+- A Cloudflare worker fronts the private R2 bucket and resolves artifacts by
+  `artifact` name (+ optional `version`) and `env`, matching the AutoUpdate
+  contract (SPEC-INFRA-002). For latest downloads it also accepts a platform
+  `key` (e.g. `linux-deb`), reads the env-root `manifest.json`, and redirects to
+  the newest versioned object. README links use the `key` form.
 
 # Requirements
 
@@ -38,10 +48,10 @@ installers.
 
 ## Acceptance
 
-- [ ] GitHub Actions builds all six installers (macOS PKG/ZIP, Windows NSIS/MSI,
+- [x] GitHub Actions builds all six installers (macOS PKG/ZIP, Windows NSIS/MSI,
       linux DEB/RPM) in isolated jobs
-- [ ] Artifacts upload to R2 at `<environment>/<version>/<artifactName>.<ext>`
-- [ ] develop and main branches map to development and production environments
-- [ ] Version resolved per environment via GH Actions cache (default `1.0.0`)
-- [ ] Cloudflare worker in `scripts/ci/cloudflare/` returns latest artifact by
+- [x] Artifacts upload to R2 at `<environment>/<version>/<artifactName>.<ext>`
+- [x] develop and main branches map to development and production environments
+- [x] Version resolved per environment via GH Actions cache (default `1.0.0`)
+- [x] Cloudflare worker in `scripts/ci/cloudflare/` returns latest artifact by
       name and environment

@@ -1,0 +1,184 @@
+name: Release
+
+on:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+env:
+  R2_BUCKET: desktop-navigator
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      environment: ${{ steps.resolve.outputs.environment }}
+    steps:
+      - name: Determine environment
+        id: envmap
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=development" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore version cache
+        uses: actions/cache@v4
+        with:
+          path: .ci-version
+          key: app-version-${{ steps.envmap.outputs.environment }}-${{ github.run_id }}
+          restore-keys: |
+            app-version-${{ steps.envmap.outputs.environment }}-
+
+      - name: Resolve and bump version
+        id: resolve
+        run: |
+          mkdir -p .ci-version
+          file=".ci-version/version.txt"
+          current="$(cat "$file" 2>/dev/null || echo "")"
+          if [ -z "$current" ]; then
+            next="1.0.0"
+          else
+            IFS='.' read -r major minor patch <<< "$current"
+            next="${major}.${minor}.$((patch + 1))"
+          fi
+          echo "$next" > "$file"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+          echo "environment=${{ steps.envmap.outputs.environment }}" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${{ steps.envmap.outputs.environment }} version: $next"
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: linux-deb
+            os: ubuntu-22.04
+            script: build:linux-deb
+            ext: deb
+          - key: linux-rpm
+            os: ubuntu-22.04
+            script: build:linux-rpm
+            ext: rpm
+          - key: win-nsis
+            os: windows-latest
+            script: build:win-nsis
+            ext: exe
+          - key: win-msi
+            os: windows-latest
+            script: build:win-msi
+            ext: msi
+          - key: mac-pkg
+            os: macos-latest
+            script: build:mac-pkg
+            ext: pkg
+          - key: mac-zip
+            os: macos-latest
+            script: build:mac-zip
+            ext: zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            build-essential \
+            file \
+            rpm
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set version
+        run: node scripts/ci/set-version.mjs "${{ needs.version.outputs.version }}"
+
+      - name: Build installer
+        run: pnpm run ${{ matrix.script }}
+
+      - name: Collect artifact
+        shell: bash
+        run: |
+          mkdir -p dist-artifacts
+          find src-tauri/target/release/bundle -type f -name "*.${{ matrix.ext }}" -exec cp {} dist-artifacts/ \;
+          echo "Collected:"
+          ls -la dist-artifacts
+
+      - name: Upload to R2
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3 cp dist-artifacts/ \
+            "s3://${R2_BUCKET}/${{ needs.version.outputs.environment }}/${{ needs.version.outputs.version }}/" \
+            --recursive \
+            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-${{ matrix.key }}
+          path: dist-artifacts/*
+          if-no-files-found: error
+
+  finalize:
+    needs: [version, build]
+    if: ${{ always() && needs.version.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: collected
+          pattern: artifact-*
+          merge-multiple: true
+
+      - name: Generate manifest and checksums
+        run: node scripts/ci/manifest.mjs collected "${{ needs.version.outputs.version }}" out
+
+      - name: Upload manifest and checksums to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          endpoint="https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+          env_name="${{ needs.version.outputs.environment }}"
+          version="${{ needs.version.outputs.version }}"
+          aws s3 cp out/ "s3://${R2_BUCKET}/${env_name}/${version}/" --recursive --endpoint-url "$endpoint"
+          aws s3 cp out/manifest.json "s3://${R2_BUCKET}/${env_name}/manifest.json" --endpoint-url "$endpoint"

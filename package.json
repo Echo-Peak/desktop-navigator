@@ -9,7 +9,15 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit",
-    "test:ext": "node --test \"BrowserExtensions/Chrome/**/*.test.js\""
+    "test:ext": "node --test \"BrowserExtensions/Chrome/**/*.test.js\"",
+    "ci:set-version": "node scripts/ci/set-version.mjs",
+    "ci:manifest": "node scripts/ci/manifest.mjs",
+    "build:linux-deb": "tauri build --bundles deb",
+    "build:linux-rpm": "tauri build --bundles rpm",
+    "build:win-nsis": "tauri build --bundles nsis",
+    "build:win-msi": "tauri build --bundles msi",
+    "build:mac-zip": "tauri build --bundles app && node scripts/ci/package-macos.mjs zip",
+    "build:mac-pkg": "tauri build --bundles app && node scripts/ci/package-macos.mjs pkg"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.16",

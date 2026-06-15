@@ -14,7 +14,7 @@ Normative specs for desktop-navigator. Each spec has a stable `id`, `status`,
 | SPEC-FEAT-002 | [features/captcha-resolvers.md](features/captcha-resolvers.md) | draft | — | SPEC-ARCH-001, SPEC-COMP-001 |
 | SPEC-FEAT-003 | [features/macro-recorder.md](features/macro-recorder.md) | implemented | BrowserExtensions/Chrome/, src-tauri/src/bridge.rs, src/lib/recorder.ts, src/routes/Automations.tsx | SPEC-FEAT-001, SPEC-COMP-001, SPEC-SCH-001, SPEC-SCH-002 |
 | SPEC-COMP-001 | [components/browser-extension.md](components/browser-extension.md) | approved | BrowserExtensions/Chrome/ | SPEC-ARCH-001 |
-| SPEC-INFRA-001 | [infra/ci-cd.md](infra/ci-cd.md) | draft | — | SPEC-PROD-001 |
+| SPEC-INFRA-001 | [infra/ci-cd.md](infra/ci-cd.md) | implemented | .github/workflows/release.yml, scripts/ci/ | SPEC-PROD-001 |
 | SPEC-INFRA-002 | [infra/autoupdate.md](infra/autoupdate.md) | implemented | crates/core/src/update/, crates/core/src/log.rs, src-tauri/src/update.rs, src/components/UpdatePrompt.tsx | SPEC-PROD-001, SPEC-ARCH-002, SPEC-INFRA-001 |
 
 Non-normative backlog: [../backlog/post-mvp.md](../backlog/post-mvp.md)
