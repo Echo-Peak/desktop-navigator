@@ -1,7 +1,7 @@
 ---
 id: SPEC-SCH-001
 title: Page Context Schema
-status: approved
+status: implemented
 depends_on:
   - SPEC-ARCH-001
   - SPEC-ARCH-002
@@ -9,6 +9,9 @@ depends_on:
 implements:
   - crates/core/src/schema.rs
   - src/types/page-context.ts
+  - src/lib/storage.ts
+  - src/lib/browserContext.ts
+  - src/components/canvas/FlowCanvas.tsx
 ---
 
 # Goal
@@ -226,10 +229,10 @@ export interface AutomationCanvas {
 
 ## Acceptance
 
-- [ ] TypeScript types in this spec are reflected in Rust/TS schema types
-- [ ] BrowserContext and PageContext JSON validate against `schemaVersion`
-- [ ] `AutomationStep.action` uses the `AutomationAction` union from
+- [x] TypeScript types in this spec are reflected in Rust/TS schema types
+- [x] BrowserContext and PageContext JSON validate against `schemaVersion`
+- [x] `AutomationStep.action` uses the `AutomationAction` union from
       [action-catalog.md](action-catalog.md); no action types are redefined here
-- [ ] `canvas` round-trips: positions/edges persist and re-render the diagram
-- [ ] `canvas.nodes[].stepId` referential integrity enforced (stale nodes pruned)
-- [ ] Example payload in this spec runs end-to-end via the execution engine
+- [x] `canvas` round-trips: positions/edges persist and re-render the diagram
+- [x] `canvas.nodes[].stepId` referential integrity enforced (stale nodes pruned)
+- [x] Example payload in this spec runs end-to-end via the execution engine

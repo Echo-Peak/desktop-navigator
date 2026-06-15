@@ -1,11 +1,12 @@
 ---
 id: SPEC-COMP-001
 title: Browser Extension
-status: approved
+status: implemented
 depends_on:
   - SPEC-ARCH-001
 implements:
   - BrowserExtensions/Chrome/
+  - src-tauri/src/adapters/browser.rs
 ---
 
 > Implementation note: the MV3 extension is implemented in
@@ -89,10 +90,10 @@ automation.
 
 ## Acceptance
 
-- [ ] Extension lives at `BrowserExtensions/Chrome/`
-- [ ] WebSocket connects to desktop app on `localhost:35282` with port retry
+- [x] Extension lives at `BrowserExtensions/Chrome/`
+- [x] WebSocket connects to desktop app on `localhost:35282` with port retry
       (35282–35292, 1000ms delay)
-- [ ] DOM queries work: page title, `getBoundingClientRect`, scroll, page
+- [x] DOM queries work: page title, `getBoundingClientRect`, scroll, page
       dimensions
-- [ ] Extension runs headless (no popup UI) in isolated Chrome profile
-- [ ] Tab/window IDs exposed for backend tab switching
+- [x] Extension runs headless (no popup UI) in isolated Chrome profile
+- [x] Tab/window IDs exposed for backend tab switching

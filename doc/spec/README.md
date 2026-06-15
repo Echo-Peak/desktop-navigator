@@ -7,13 +7,13 @@ Normative specs for desktop-navigator. Each spec has a stable `id`, `status`,
 | --- | --- | --- | --- | --- |
 | SPEC-PROD-001 | [product/vision.md](product/vision.md) | draft | — | — |
 | SPEC-ARCH-001 | [architecture/execution-engine.md](architecture/execution-engine.md) | approved | crates/core/src/engine/, src-tauri/src/adapters/, src-tauri/src/bridge.rs | SPEC-PROD-001, SPEC-SCH-002 |
-| SPEC-ARCH-002 | [architecture/data-management.md](architecture/data-management.md) | approved | crates/core/src/data.rs | SPEC-PROD-001 |
-| SPEC-SCH-001 | [schemas/page-context.md](schemas/page-context.md) | approved | crates/core/src/schema.rs, src/types/page-context.ts | SPEC-ARCH-001, SPEC-ARCH-002, SPEC-SCH-002 |
-| SPEC-SCH-002 | [schemas/action-catalog.md](schemas/action-catalog.md) | approved | src/types/action-catalog.ts | SPEC-PROD-001 |
+| SPEC-ARCH-002 | [architecture/data-management.md](architecture/data-management.md) | implemented | crates/core/src/data.rs, crates/core/src/log.rs, src-tauri/src/lib.rs, src-tauri/src/update.rs, src/lib/storage.ts, src/lib/captchaStorage.ts | SPEC-PROD-001 |
+| SPEC-SCH-001 | [schemas/page-context.md](schemas/page-context.md) | implemented | crates/core/src/schema.rs, src/types/page-context.ts, src/lib/storage.ts, src/lib/browserContext.ts, src/components/canvas/FlowCanvas.tsx | SPEC-ARCH-001, SPEC-ARCH-002, SPEC-SCH-002 |
+| SPEC-SCH-002 | [schemas/action-catalog.md](schemas/action-catalog.md) | implemented | src/types/action-catalog.ts, crates/core/src/schema.rs, src/lib/recorder.ts, src/lib/actions.ts | SPEC-PROD-001 |
 | SPEC-FEAT-001 | [features/desktop-ui.md](features/desktop-ui.md) | implemented | src/, src-tauri/src/lib.rs | SPEC-PROD-001, SPEC-SCH-001, SPEC-SCH-002 |
 | SPEC-FEAT-002 | [features/captcha-resolvers.md](features/captcha-resolvers.md) | draft | — | SPEC-ARCH-001, SPEC-COMP-001 |
 | SPEC-FEAT-003 | [features/macro-recorder.md](features/macro-recorder.md) | implemented | BrowserExtensions/Chrome/, src-tauri/src/bridge.rs, src/lib/recorder.ts, src/routes/Automations.tsx | SPEC-FEAT-001, SPEC-COMP-001, SPEC-SCH-001, SPEC-SCH-002 |
-| SPEC-COMP-001 | [components/browser-extension.md](components/browser-extension.md) | approved | BrowserExtensions/Chrome/ | SPEC-ARCH-001 |
+| SPEC-COMP-001 | [components/browser-extension.md](components/browser-extension.md) | implemented | BrowserExtensions/Chrome/, src-tauri/src/adapters/browser.rs | SPEC-ARCH-001 |
 | SPEC-INFRA-001 | [infra/ci-cd.md](infra/ci-cd.md) | implemented | .github/workflows/release.yml, scripts/ci/ | SPEC-PROD-001 |
 | SPEC-INFRA-002 | [infra/autoupdate.md](infra/autoupdate.md) | implemented | crates/core/src/update/, crates/core/src/log.rs, src-tauri/src/update.rs, src/components/UpdatePrompt.tsx | SPEC-PROD-001, SPEC-ARCH-002, SPEC-INFRA-001 |
 

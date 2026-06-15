@@ -1,10 +1,14 @@
 ---
 id: SPEC-SCH-002
 title: Action Catalog
-status: approved
+status: implemented
 depends_on:
   - SPEC-PROD-001
-implements: []
+implements:
+  - src/types/action-catalog.ts
+  - crates/core/src/schema.rs
+  - src/lib/recorder.ts
+  - src/lib/actions.ts
 ---
 
 # Goal
@@ -161,11 +165,11 @@ The UI panel, node-graph canvas, and recorder mapping all derive from this table
 
 ## Acceptance
 
-- [ ] `AutomationAction` is defined only in this spec; no other spec redefines
+- [x] `AutomationAction` is defined only in this spec; no other spec redefines
       the action union
-- [ ] Every action lists its category and executor subsystem in the metadata
+- [x] Every action lists its category and executor subsystem in the metadata
       table
-- [ ] Recorder vocabulary (`press`, `waitForElement`, `dblclick`) maps onto
+- [x] Recorder vocabulary (`press`, `waitForElement`, `dblclick`) maps onto
       catalog actions with no orphan names
-- [ ] page-context, desktop-ui, macro-recorder, and execution-engine reference
+- [x] page-context, desktop-ui, macro-recorder, and execution-engine reference
       this catalog rather than defining their own list

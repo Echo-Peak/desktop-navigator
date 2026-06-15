@@ -34,17 +34,25 @@ pub struct AppDirs {
     pub updates_dir: String,
     pub logs_dir: String,
     pub pages_dir: String,
+    pub captcha_resolvers_dir: String,
 }
 
 #[tauri::command]
 fn app_dirs() -> Result<AppDirs, String> {
     let paths = AppPaths::resolve().map_err(|e| e.to_string())?;
     paths.ensure_base_dirs().map_err(|e| e.to_string())?;
+    paths
+        .ensure_captcha_dir(update::CURRENT_VERSION)
+        .map_err(|e| e.to_string())?;
     Ok(AppDirs {
         install_dir: paths.install_dir().display().to_string(),
         updates_dir: paths.updates_dir().display().to_string(),
         logs_dir: paths.logs_dir().display().to_string(),
         pages_dir: paths.pages_dir().display().to_string(),
+        captcha_resolvers_dir: paths
+            .captcha_resolvers_dir(update::CURRENT_VERSION)
+            .display()
+            .to_string(),
     })
 }
 
@@ -95,6 +103,57 @@ fn write_page(name: String, json: String) -> Result<(), String> {
 fn delete_page(name: String) -> Result<(), String> {
     let paths = AppPaths::resolve().map_err(|e| e.to_string())?;
     let file = paths.pages_dir().join(format!("{}.json", sanitize(&name)));
+    if file.exists() {
+        std::fs::remove_file(file).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+fn captcha_dir(paths: &AppPaths) -> PathBuf {
+    paths.captcha_resolvers_dir(update::CURRENT_VERSION)
+}
+
+#[tauri::command]
+fn list_captcha_resolvers() -> Result<Vec<String>, String> {
+    let paths = AppPaths::resolve().map_err(|e| e.to_string())?;
+    let dir = captcha_dir(&paths);
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+    let mut names = Vec::new();
+    for entry in std::fs::read_dir(&dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) == Some("json") {
+            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                names.push(stem.to_string());
+            }
+        }
+    }
+    names.sort();
+    Ok(names)
+}
+
+#[tauri::command]
+fn read_captcha_resolver(id: String) -> Result<String, String> {
+    let paths = AppPaths::resolve().map_err(|e| e.to_string())?;
+    let file = captcha_dir(&paths).join(format!("{}.json", sanitize(&id)));
+    std::fs::read_to_string(file).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn write_captcha_resolver(id: String, json: String) -> Result<(), String> {
+    let paths = AppPaths::resolve().map_err(|e| e.to_string())?;
+    let dir = captcha_dir(&paths);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let file = dir.join(format!("{}.json", sanitize(&id)));
+    std::fs::write(file, json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_captcha_resolver(id: String) -> Result<(), String> {
+    let paths = AppPaths::resolve().map_err(|e| e.to_string())?;
+    let file = captcha_dir(&paths).join(format!("{}.json", sanitize(&id)));
     if file.exists() {
         std::fs::remove_file(file).map_err(|e| e.to_string())?;
     }
@@ -398,6 +457,10 @@ pub fn run() {
             read_page,
             write_page,
             delete_page,
+            list_captcha_resolvers,
+            read_captcha_resolver,
+            write_captcha_resolver,
+            delete_captcha_resolver,
             store_secret,
             input_available,
             bridge_status,

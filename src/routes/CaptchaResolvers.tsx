@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ShieldCheck } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { listCaptchaResolvers, readCaptchaResolver } from "@/lib/captchaStorage";
 import type { CaptchaResolver } from "@/types";
 
 const BUILTIN: Pick<CaptchaResolver, "id" | "title" | "description">[] = [
@@ -16,20 +17,22 @@ const BUILTIN: Pick<CaptchaResolver, "id" | "title" | "description">[] = [
   }
 ];
 
-const KEY = "dn:captcha-resolvers";
-
-function loadUser(): CaptchaResolver[] {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
 export function CaptchaResolvers() {
   const [user, setUser] = React.useState<CaptchaResolver[]>([]);
 
-  React.useEffect(() => setUser(loadUser()), []);
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = await listCaptchaResolvers();
+      const loaded = await Promise.all(ids.map((id) => readCaptchaResolver(id)));
+      if (!cancelled) {
+        setUser(loaded.filter((r): r is CaptchaResolver => r !== null));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section>

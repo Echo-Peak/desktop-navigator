@@ -1,10 +1,16 @@
 ---
 id: SPEC-ARCH-002
 title: Data Management
-status: approved
+status: implemented
 depends_on:
   - SPEC-PROD-001
-implements: []
+implements:
+  - crates/core/src/data.rs
+  - crates/core/src/log.rs
+  - src-tauri/src/lib.rs
+  - src-tauri/src/update.rs
+  - src/lib/storage.ts
+  - src/lib/captchaStorage.ts
 ---
 
 # Goal
@@ -86,9 +92,9 @@ User-created captcha resolvers: `InstallDir/<appVersion>/captcha-resolvers`
 
 ## Acceptance
 
-- [ ] InstallDir resolves correctly on Windows, macOS, and Linux
-- [ ] Logs written to `InstallDir/logs/<timestamp>-<version>.log`
-- [ ] Page schemas stored under `InstallDir/UserData/Pages`
-- [ ] Captcha resolvers stored under `InstallDir/<appVersion>/captcha-resolvers`
-- [ ] AutoUpdater checks GH releases, verifies SHA-256, and installs to versioned
+- [x] InstallDir resolves correctly on Windows, macOS, and Linux
+- [x] Logs written to `InstallDir/logs/<timestamp>-<version>.log`
+- [x] Page schemas stored under `InstallDir/UserData/Pages`
+- [x] Captcha resolvers stored under `InstallDir/<appVersion>/captcha-resolvers`
+- [x] AutoUpdater checks R2 worker, verifies SHA-256, and installs to versioned
       directories without deleting previous versions

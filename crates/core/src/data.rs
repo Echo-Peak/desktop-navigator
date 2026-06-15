@@ -81,6 +81,11 @@ impl AppPaths {
         std::fs::create_dir_all(self.pages_dir())?;
         Ok(())
     }
+
+    pub fn ensure_captcha_dir(&self, app_version: &str) -> Result<(), DataError> {
+        std::fs::create_dir_all(self.captcha_resolvers_dir(app_version))?;
+        Ok(())
+    }
 }
 
 pub fn now_ms() -> u128 {
@@ -161,6 +166,15 @@ mod tests {
         p.ensure_base_dirs().unwrap();
         assert!(p.logs_dir().is_dir());
         assert!(p.pages_dir().is_dir());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn ensure_captcha_dir_creates_versioned_path() {
+        let dir = std::env::temp_dir().join(format!("dn-captcha-{}", now_ms()));
+        let p = AppPaths::with_install_dir(&dir);
+        p.ensure_captcha_dir("1.0.0").unwrap();
+        assert!(p.captcha_resolvers_dir("1.0.0").is_dir());
         std::fs::remove_dir_all(&dir).ok();
     }
 }
